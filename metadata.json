@@ -1,0 +1,6 @@
+{
+  "name": "Sales Territory Studio (STS v1.0)",
+  "description": "Profesjonalna aplikacja webowa do modelowania struktur sprzedaży OFWCA, DKP/DPD, optymalizacji terytoriów oraz balansowania sił sprzedażowych i obciążenia koordynatorów (MS/RMS).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

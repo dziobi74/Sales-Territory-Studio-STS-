@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="odlGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="50%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+  </defs>
+  <!-- Background Rounded Rect -->
+  <rect width="512" height="512" rx="112" fill="#0f172a" />
+  
+  <!-- Outer glowing rings -->
+  <circle cx="256" cy="256" r="190" stroke="#1e293b" stroke-width="4" stroke-dasharray="12 12" />
+  
+  <!-- Territory Hexagons & Nodes (ODL Studio style) -->
+  <path d="M256 96 L376 165 V305 L256 374 L136 305 V165 Z" fill="url(#odlGrad)" opacity="0.25" stroke="#3b82f6" stroke-width="4" />
+  
+  <!-- Connecting Territory Lines -->
+  <path d="M190 200 L256 160 L322 200 L322 280 L256 320 L190 280 Z" fill="none" stroke="#60a5fa" stroke-width="6" stroke-linejoin="round" />
+  
+  <!-- Network hub lines -->
+  <line x1="256" y1="160" x2="256" y2="240" stroke="#93c5fd" stroke-width="4" />
+  <line x1="190" y1="200" x2="256" y2="240" stroke="#93c5fd" stroke-width="4" />
+  <line x1="322" y1="200" x2="256" y2="240" stroke="#93c5fd" stroke-width="4" />
+  <line x1="190" y1="280" x2="256" y2="240" stroke="#93c5fd" stroke-width="4" />
+  <line x1="322" y1="280" x2="256" y2="240" stroke="#93c5fd" stroke-width="4" />
+  <line x1="256" y1="320" x2="256" y2="240" stroke="#93c5fd" stroke-width="4" />
+
+  <!-- Sales Growth Arrow -->
+  <path d="M160 360 L230 310 L280 340 L352 230" fill="none" stroke="url(#accentGrad)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M332 230 H352 V250" fill="none" stroke="#10b981" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Territory Nodes -->
+  <circle cx="256" cy="240" r="22" fill="#3b82f6" stroke="#ffffff" stroke-width="6" />
+  <circle cx="190" cy="200" r="14" fill="#06b6d4" stroke="#ffffff" stroke-width="4" />
+  <circle cx="322" cy="200" r="14" fill="#06b6d4" stroke="#ffffff" stroke-width="4" />
+  <circle cx="190" cy="280" r="14" fill="#10b981" stroke="#ffffff" stroke-width="4" />
+  <circle cx="322" cy="280" r="14" fill="#f59e0b" stroke="#ffffff" stroke-width="4" />
+  <circle cx="256" cy="160" r="14" fill="#8b5cf6" stroke="#ffffff" stroke-width="4" />
+  <circle cx="256" cy="320" r="14" fill="#ec4899" stroke="#ffffff" stroke-width="4" />
+</svg>
