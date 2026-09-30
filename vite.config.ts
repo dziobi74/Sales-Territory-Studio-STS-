@@ -1,41 +1,37 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
-import {VitePWA} from 'vite-plugin-pwa';
+import { defineConfig, Plugin } from 'vite';
+
+function safeTailwind(): Plugin[] {
+  const plugins = tailwindcss() as Plugin[];
+  return plugins.map(p => {
+    if (p.name === '@tailwindcss/vite:generate:serve' && p.hotUpdate) {
+      const origHotUpdate = p.hotUpdate;
+      return {
+        ...p,
+        hotUpdate(this: any, ctx: any) {
+          // When HMR is disabled, prevent @tailwindcss/vite from calling undefined this.environment.hot.send
+          if (!this?.environment?.hot || process.env.DISABLE_HMR === 'true') {
+            return [];
+          }
+          try {
+            return typeof origHotUpdate === 'function' ? origHotUpdate.call(this, ctx) : [];
+          } catch {
+            return [];
+          }
+        },
+      };
+    }
+    return p;
+  });
+}
 
 export default defineConfig(() => {
   return {
     plugins: [
       react(),
-      tailwindcss(),
-      VitePWA({
-        registerType: 'autoUpdate',
-        includeAssets: ['icon.svg'],
-        manifest: {
-          id: '/',
-          name: 'Sales Territory Studio (STS v1.0)',
-          short_name: 'STS v1.0',
-          description: 'Aplikacja webowa do modelowania i balansowania struktur sprzedaży OFWCA, DKP/DPD oraz obciążenia koordynatorów (MS/RMS).',
-          theme_color: '#1e293b',
-          background_color: '#0f172a',
-          display: 'standalone',
-          start_url: '/',
-          scope: '/',
-          icons: [
-            {
-              src: '/icon.svg',
-              sizes: 'any',
-              type: 'image/svg+xml',
-              purpose: 'any',
-            },
-          ],
-        },
-        devOptions: {
-          enabled: true,
-          type: 'module',
-        },
-      }),
+      safeTailwind(),
     ],
     resolve: {
       alias: {

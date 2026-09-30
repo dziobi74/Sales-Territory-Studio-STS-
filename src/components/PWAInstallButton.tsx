@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { Download, Monitor, CheckCircle, Info, X } from 'lucide-react';
 
-export const PWAInstallButton: React.FC = () => {
+interface PWAInstallButtonProps {
+  onOpenInstallation?: () => void;
+}
+
+export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ onOpenInstallation }) => {
   const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
   const [showGuide, setShowGuide] = useState(false);
 
@@ -74,12 +78,24 @@ export const PWAInstallButton: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-5 flex justify-end">
+            <div className="mt-5 flex items-center justify-between gap-3">
+              {onOpenInstallation && (
+                <button
+                  onClick={() => {
+                    setShowGuide(false);
+                    onOpenInstallation();
+                  }}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-blue-500/20 transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Pobierz paczkę ZIP na PC</span>
+                </button>
+              )}
               <button
                 onClick={() => setShowGuide(false)}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/20 transition cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer ml-auto"
               >
-                Rozumiem
+                Zamknij
               </button>
             </div>
           </div>

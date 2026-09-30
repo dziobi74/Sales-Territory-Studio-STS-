@@ -268,6 +268,53 @@ export async function wipeLocalDatabase(): Promise<void> {
     localDb.records.clear(),
     localDb.coordinatorsMs.clear(),
     localDb.coordinatorsRms.clear(),
-    localDb.historySteps.clear()
+    localDb.historySteps.clear(),
+    localDb.backups.clear()
   ]);
+}
+
+/**
+ * Creates and persists a named version snapshot in IndexedDB
+ */
+export async function createNamedSnapshot(
+  name: string,
+  description: string,
+  records: OFWCARecord[],
+  msList: CoordinatorMS[],
+  rmsList: CoordinatorRMS[],
+  history: ModelingHistoryStep[]
+): Promise<BackupPackage> {
+  const timestamp = Date.now();
+  const dateStr = new Date(timestamp).toLocaleString('pl-PL');
+  const pkg: BackupPackage = {
+    id: `snap_${timestamp}`,
+    name,
+    timestamp,
+    dateStr,
+    version: description || 'Ręczna migawka stanu struktur',
+    recordsCount: records.length,
+    msCount: msList.length,
+    rmsCount: rmsList.length,
+    records: JSON.parse(JSON.stringify(records)),
+    msList: JSON.parse(JSON.stringify(msList)),
+    rmsList: JSON.parse(JSON.stringify(rmsList)),
+    history: JSON.parse(JSON.stringify(history))
+  };
+  await localDb.backups.put(pkg);
+  return pkg;
+}
+
+/**
+ * Load all version snapshots ordered by timestamp descending
+ */
+export async function loadAllSnapshots(): Promise<BackupPackage[]> {
+  const list = await localDb.backups.toArray();
+  return list.sort((a, b) => b.timestamp - a.timestamp);
+}
+
+/**
+ * Delete a specific snapshot by ID
+ */
+export async function deleteSnapshotById(id: string): Promise<void> {
+  await localDb.backups.delete(id);
 }

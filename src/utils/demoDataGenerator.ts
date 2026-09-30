@@ -2,20 +2,20 @@ import { OFWCARecord, CoordinatorMS, CoordinatorRMS } from '../types';
 import * as XLSX from 'xlsx';
 
 export const DEFAULT_RMS_LIST: CoordinatorRMS[] = [
-  { id: 'rms_1', name: 'RMS Północ (Marek Zieliński)', region: 'Północ', color: '#0284c7' }, // Sky
-  { id: 'rms_2', name: 'RMS Centrum (Agnieszka Szymańska)', region: 'Centrum', color: '#7c3aed' }, // Purple
-  { id: 'rms_3', name: 'RMS Południe (Robert Jankowski)', region: 'Południe', color: '#059669' }, // Emerald
+  { id: 'rms_1', name: 'RMS Północ (Marek Zieliński)', region: 'Północ', color: '#1d4ed8' }, // Szafirowy Błękit
+  { id: 'rms_2', name: 'RMS Centrum (Agnieszka Szymańska)', region: 'Centrum', color: '#7e22ce' }, // Królewski Fiolet
+  { id: 'rms_3', name: 'RMS Południe (Robert Jankowski)', region: 'Południe', color: '#047857' }, // Głęboka Zieleń Lasu
 ];
 
 export const DEFAULT_MS_LIST: CoordinatorMS[] = [
-  { id: 'ms_1', name: 'MS Jan Kowalski', rms: 'RMS Północ (Marek Zieliński)', region: 'Pomorskie / Kujawy', color: '#38bdf8' },
-  { id: 'ms_2', name: 'MS Anna Nowak', rms: 'RMS Północ (Marek Zieliński)', region: 'Zachodniopomorskie', color: '#0ea5e9' },
-  { id: 'ms_3', name: 'MS Piotr Wiśniewski', rms: 'RMS Centrum (Agnieszka Szymańska)', region: 'Mazowsze Północ', color: '#a855f7' },
-  { id: 'ms_4', name: 'MS Katarzyna Lewandowska', rms: 'RMS Centrum (Agnieszka Szymańska)', region: 'Mazowsze Południe / Radom', color: '#8b5cf6' },
-  { id: 'ms_5', name: 'MS Michał Kamiński', rms: 'RMS Centrum (Agnieszka Szymańska)', region: 'Łódzkie / Świętokrzyskie', color: '#6366f1' },
-  { id: 'ms_6', name: 'MS Tomasz Wójcik', rms: 'RMS Południe (Robert Jankowski)', region: 'Wielkopolska / Lubuskie', color: '#10b981' },
-  { id: 'ms_7', name: 'MS Magdalena Dąbrowska', rms: 'RMS Południe (Robert Jankowski)', region: 'Dolny Śląsk / Opole', color: '#14b8a6' },
-  { id: 'ms_8', name: 'MS Paweł Kozłowski', rms: 'RMS Południe (Robert Jankowski)', region: 'Małopolska / Śląsk / Podkarpacie', color: '#f59e0b' },
+  { id: 'ms_1', name: 'MS Jan Kowalski', rms: 'RMS Północ (Marek Zieliński)', region: 'Pomorskie / Kujawy', color: '#ea580c' }, // Żywy Pomarańczowy
+  { id: 'ms_2', name: 'MS Anna Nowak', rms: 'RMS Północ (Marek Zieliński)', region: 'Zachodniopomorskie', color: '#06b6d4' }, // Jasny Turkus
+  { id: 'ms_3', name: 'MS Piotr Wiśniewski', rms: 'RMS Centrum (Agnieszka Szymańska)', region: 'Mazowsze Północ', color: '#db2777' }, // Róż / Magenta
+  { id: 'ms_4', name: 'MS Katarzyna Lewandowska', rms: 'RMS Centrum (Agnieszka Szymańska)', region: 'Mazowsze Południe / Radom', color: '#8b5cf6' }, // Fiolet
+  { id: 'ms_5', name: 'MS Michał Kamiński', rms: 'RMS Centrum (Agnieszka Szymańska)', region: 'Łódzkie / Świętokrzyskie', color: '#eab308' }, // Złocisty Bursztyn
+  { id: 'ms_6', name: 'MS Tomasz Wójcik', rms: 'RMS Południe (Robert Jankowski)', region: 'Wielkopolska / Lubuskie', color: '#10b981' }, // Szmaragdowa Zieleń
+  { id: 'ms_7', name: 'MS Magdalena Dąbrowska', rms: 'RMS Południe (Robert Jankowski)', region: 'Dolny Śląsk / Opole', color: '#14b8a6' }, // Morski Teal
+  { id: 'ms_8', name: 'MS Paweł Kozłowski', rms: 'RMS Południe (Robert Jankowski)', region: 'Małopolska / Śląsk / Podkarpacie', color: '#ef4444' }, // Karminowa Czerwień
 ];
 
 export const COLOR_PALETTE = [

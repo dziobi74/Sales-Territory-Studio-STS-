@@ -7,7 +7,7 @@ import {
   TerritoryBalanceMetric,
   DataAuditReport 
 } from './types';
-import { generateRealisticDataset } from './utils/demoDataGenerator';
+import { generateRealisticDataset, DEFAULT_MS_LIST, DEFAULT_RMS_LIST } from './utils/demoDataGenerator';
 import { calculateTerritoryMetrics, generateAuditReport, computeBalancingProposals } from './utils/balancer';
 import { parseExcelWorkbook } from './utils/excelParser';
 import { exportModeledWorkbook } from './utils/excelExporter';
@@ -32,7 +32,9 @@ import { DocumentationTab } from './components/DocumentationTab';
 import { AITerritoryAdvisor } from './components/AITerritoryAdvisor';
 import { AutoBalanceModal } from './components/AutoBalanceModal';
 import { InstallationModal } from './components/InstallationModal';
+import { VersionManagerModal } from './components/VersionManagerModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { BackupPackage, createNamedSnapshot, loadAllSnapshots } from './db/indexedDB';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 const DEFAULT_GOOGLE_KEY = (typeof window !== 'undefined' ? localStorage.getItem('STS_GOOGLE_API_KEY') : null) || import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyDx8L35dkaoxPtBqiwOv406C6XUnRD_WKI';
@@ -45,8 +47,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'map' | 'balance' | 'workbench' | 'hierarchy' | 'audit' | 'ai' | 'docs'>('map');
   const [isAutoBalanceOpen, setIsAutoBalanceOpen] = useState(false);
   const [isInstallationModalOpen, setIsInstallationModalOpen] = useState(false);
+  const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
   const [googleApiKey, setGoogleApiKey] = useState<string>(DEFAULT_GOOGLE_KEY);
-  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error' | 'info' | 'warning'; text: string } | null>(null);
   const [fileWarnings, setFileWarnings] = useState<string[]>([]);
 
   // Initialize data on mount: prioritize IndexedDB, fallback to demo dataset
@@ -65,10 +68,31 @@ export default function App() {
         const dbHistory = await loadHistory();
 
         if (dbRecords && dbRecords.length > 0 && dbMs && dbMs.length > 0) {
+          const updatedMs = dbMs.map(m => {
+            const def = DEFAULT_MS_LIST.find(d => d.name === m.name);
+            return def ? { ...m, color: def.color } : m;
+          });
+          const updatedRms = (dbRms || DEFAULT_RMS_LIST).map(r => {
+            const def = DEFAULT_RMS_LIST.find(d => d.name === r.name);
+            return def ? { ...r, color: def.color } : r;
+          });
           setRecords(dbRecords);
-          setMsList(dbMs);
-          setRmsList(dbRms);
+          setMsList(updatedMs);
+          setRmsList(updatedRms);
           setHistory(dbHistory || []);
+
+          // Ensure at least one initial baseline snapshot exists
+          const existingSnaps = await loadAllSnapshots();
+          if (existingSnaps.length === 0) {
+            await createNamedSnapshot(
+              'Wersja 0: Baza początkowa',
+              'Punkt odniesienia ze stanem pierwotnym struktur',
+              dbRecords,
+              updatedMs,
+              updatedRms,
+              dbHistory || []
+            );
+          }
           return;
         }
       } catch (err) {
@@ -84,6 +108,16 @@ export default function App() {
       // Cache into IndexedDB for persistent PC work
       persistAllRecords(demo.records);
       persistCoordinators(demo.msList, demo.rmsList);
+
+      // Create initial snapshot
+      await createNamedSnapshot(
+        'Wersja 0: Baza początkowa',
+        'Pierwotny stan struktur sprzedażowych przed modelowaniem',
+        demo.records,
+        demo.msList,
+        demo.rmsList,
+        []
+      );
     }
 
     initData();
@@ -244,6 +278,16 @@ export default function App() {
         type: 'success',
         text: `Wczytano pomyślnie ${result.records.length} rekordów OFWCA dla ${result.msList.length} MS!`
       });
+
+      // Save baseline snapshot of newly uploaded Excel
+      await createNamedSnapshot(
+        `Wersja 0: Import ${file.name}`,
+        `Dane pierwotne wczytane z pliku ${file.name}`,
+        result.records,
+        result.msList,
+        result.rmsList,
+        []
+      );
     } catch (err: any) {
       setToastMessage({
         type: 'error',
@@ -251,6 +295,33 @@ export default function App() {
       });
     }
   }, []);
+
+  // Handle restoring a snapshot version
+  const handleRestoreSnapshot = useCallback(async (snap: BackupPackage) => {
+    setRecords(snap.records);
+    setMsList(snap.msList);
+    setRmsList(snap.rmsList);
+    setHistory(snap.history || []);
+    
+    await persistAllRecords(snap.records);
+    await persistCoordinators(snap.msList, snap.rmsList);
+    if (snap.history) {
+      await persistHistory(snap.history);
+    }
+  }, []);
+
+  // Handle full reset to initial baseline from file
+  const handleResetToBase = useCallback(async () => {
+    const resetRecords = records.map(r => ({
+      ...r,
+      currentMs: r.initialMs,
+      currentRms: r.initialRms
+    }));
+    setRecords(resetRecords);
+    setHistory([]);
+    await persistAllRecords(resetRecords);
+    await persistHistory([]);
+  }, [records]);
 
   // Handle Export to Excel
   const handleExportModeled = useCallback(() => {
@@ -351,6 +422,7 @@ export default function App() {
         auditIssuesCount={auditReport.missingLocationCount + auditReport.missingGwpCount + auditReport.duplicatesCount}
         onOpenInstallation={() => setIsInstallationModalOpen(true)}
         hasGoogleKey={Boolean(googleApiKey)}
+        onOpenVersions={() => setIsVersionModalOpen(true)}
       />
 
       {/* Main Workspace Container */}
@@ -483,11 +555,25 @@ export default function App() {
         onPackageImported={handlePackageImported}
       />
 
+      {/* Version Manager & Snapshots Modal */}
+      <VersionManagerModal
+        isOpen={isVersionModalOpen}
+        onClose={() => setIsVersionModalOpen(false)}
+        records={records}
+        msList={msList}
+        rmsList={rmsList}
+        history={history}
+        onRestoreSnapshot={handleRestoreSnapshot}
+        onResetToBase={handleResetToBase}
+        onToast={setToastMessage}
+      />
+
       {/* Floating Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-xl px-4 py-3 text-xs font-semibold shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom-3 duration-200 border bg-slate-900 border-slate-700 text-white">
           {toastMessage.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
           {toastMessage.type === 'error' && <AlertCircle className="w-4 h-4 text-rose-400" />}
+          {toastMessage.type === 'warning' && <AlertCircle className="w-4 h-4 text-amber-400" />}
           {toastMessage.type === 'info' && <Info className="w-4 h-4 text-blue-400" />}
           <span>{toastMessage.text}</span>
           <button onClick={() => setToastMessage(null)} className="ml-2 text-slate-400 hover:text-white">

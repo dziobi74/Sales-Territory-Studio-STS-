@@ -23,6 +23,8 @@ import {
   Map as MapIcon
 } from 'lucide-react';
 import { GoogleTerritoryMap } from './GoogleTerritoryMap';
+import { MSTerritoryInspector } from './MSTerritoryInspector';
+import { OutOfTerritoryModal } from './OutOfTerritoryModal';
 
 interface TerritoryMapProps {
   records: OFWCARecord[];
@@ -35,7 +37,7 @@ interface TerritoryMapProps {
 }
 
 type ColorMode = 'ms' | 'rms' | 'gwp' | 'ofwca' | 'dkp';
-type EngineMode = 'odl_svg' | 'google_maps';
+type EngineMode = 'odl_svg' | 'ms_territory' | 'google_maps';
 
 export const TerritoryMap: React.FC<TerritoryMapProps> = ({
   records,
@@ -47,6 +49,7 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
   onOpenSettings = () => {}
 }) => {
   const [engineMode, setEngineMode] = useState<EngineMode>('odl_svg');
+  const [selectedInspectorMs, setSelectedInspectorMs] = useState<string>('');
   const [colorMode, setColorMode] = useState<ColorMode>('ms');
   const [selectedVoivodeship, setSelectedVoivodeship] = useState<VoivodeshipGeo | null>(null);
   const [hoveredVoivodeship, setHoveredVoivodeship] = useState<VoivodeshipGeo | null>(null);
@@ -54,6 +57,11 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
   const [selectedOfwcaIdsInDrawer, setSelectedOfwcaIdsInDrawer] = useState<string[]>([]);
   const [drawerTab, setDrawerTab] = useState<'powiaty' | 'ms_breakdown' | 'ofwca_list' | 'reassign'>('ms_breakdown');
   const [powiatSearchTerm, setPowiatSearchTerm] = useState<string>('');
+  const [outOfTerritoryModalData, setOutOfTerritoryModalData] = useState<{
+    msName: string;
+    voivodeshipName: string;
+    records: OFWCARecord[];
+  } | null>(null);
 
   // Maps and quick lookups
   const msMap = useMemo(() => new Map(msList.map(m => [m.name, m])), [msList]);
@@ -132,8 +140,24 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
         }
       });
       item.dominantMs = dominant;
+
+      // Compute dominant RMS from records in this voivodeship
+      const rmsCounts = new Map<string, number>();
+      item.records.forEach(r => {
+        const coord = msMap.get(r.currentMs);
+        const rName = r.currentRms || coord?.rms || 'RMS Standard';
+        rmsCounts.set(rName, (rmsCounts.get(rName) || 0) + 1);
+      });
+      let maxRmsCount = -1;
+      let dominantRms = '';
+      rmsCounts.forEach((c, rms) => {
+        if (c > maxRmsCount) {
+          maxRmsCount = c;
+          dominantRms = rms;
+        }
+      });
       const coordinator = msMap.get(dominant);
-      item.dominantRms = coordinator ? coordinator.rms : 'RMS Standard';
+      item.dominantRms = dominantRms || (coordinator ? coordinator.rms : 'RMS Standard');
     });
 
     return stats;
@@ -165,12 +189,19 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
 
     if (colorMode === 'ms') {
       const coordinator = msMap.get(data.dominantMs);
-      return coordinator ? coordinator.color : '#64748b';
+      return coordinator ? coordinator.color : '#475569';
     }
 
     if (colorMode === 'rms') {
-      const rms = rmsMap.get(data.dominantRms);
-      return rms ? rms.color : '#0284c7';
+      const dominantRmsName = (data.dominantRms || '').toLowerCase();
+      // Match by exact name or region keyword (Północ, Centrum, Południe)
+      const rms = rmsList.find(r => 
+        r.name.toLowerCase() === dominantRmsName ||
+        dominantRmsName.includes(r.name.toLowerCase()) ||
+        r.name.toLowerCase().includes(dominantRmsName) ||
+        (r.region && dominantRmsName.includes(r.region.toLowerCase()))
+      );
+      return rms ? rms.color : '#1d4ed8';
     }
 
     if (colorMode === 'gwp') {
@@ -218,6 +249,8 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
       outOfTerritoryOfwca: number;
       outOfTerritoryDkp: number;
       outOfTerritoryDpd: number;
+      inTerritoryRecords: OFWCARecord[];
+      outOfTerritoryRecords: OFWCARecord[];
       gwp2026InVoivodeship: number;
     }> = [];
 
@@ -230,18 +263,24 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
       const homeWoj = (coordinator?.primaryVoivodeship || coordinator?.region || '').toLowerCase();
       const isHome = homeWoj ? (homeWoj.includes(vName) || vName.includes(homeWoj)) : false;
 
+      const msRecords = data.records.filter(r => r.currentMs === msName);
+      const inRecs = isHome ? msRecords : [];
+      const outRecs = !isHome ? msRecords : [];
+
       result.push({
         msName,
         color,
         rmsName: rms,
         isHomeTerritory: isHome,
         totalOfwcaInVoivodeship: entry.count,
-        inTerritoryOfwca: isHome ? entry.count : 0,
-        inTerritoryDkp: isHome ? entry.dkp : 0,
-        inTerritoryDpd: isHome ? entry.dpd : 0,
-        outOfTerritoryOfwca: !isHome ? entry.count : 0,
-        outOfTerritoryDkp: !isHome ? entry.dkp : 0,
-        outOfTerritoryDpd: !isHome ? entry.dpd : 0,
+        inTerritoryOfwca: inRecs.length,
+        inTerritoryDkp: inRecs.filter(r => r.isDkp).length,
+        inTerritoryDpd: inRecs.filter(r => !r.isDkp).length,
+        outOfTerritoryOfwca: outRecs.length,
+        outOfTerritoryDkp: outRecs.filter(r => r.isDkp).length,
+        outOfTerritoryDpd: outRecs.filter(r => !r.isDkp).length,
+        inTerritoryRecords: inRecs,
+        outOfTerritoryRecords: outRecs,
         gwp2026InVoivodeship: entry.gwp2026,
       });
     });
@@ -372,7 +411,24 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
               }`}
             >
               <MapIcon className="w-3.5 h-3.5" />
-              <span>Mapa Wektorowa (ODL)</span>
+              <span>Województwa (ODL)</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (!selectedInspectorMs && msList.length > 0) {
+                  setSelectedInspectorMs(msList[0].name);
+                }
+                setEngineMode('ms_territory');
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-semibold transition cursor-pointer ${
+                engineMode === 'ms_territory'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5 text-cyan-300" />
+              <span>Zakres MS do Powiatów</span>
             </button>
 
             <button
@@ -384,42 +440,44 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
               }`}
             >
               <Globe className="w-3.5 h-3.5 text-cyan-300" />
-              <span>Google Maps GIS (380 Powiatów)</span>
+              <span>Google Maps GIS</span>
             </button>
           </div>
 
           {/* Mode Selector Buttons for SVG */}
           {engineMode === 'odl_svg' && (
-            <div className="flex flex-wrap items-center gap-1 bg-slate-950 p-1.5 rounded-xl border border-slate-800 text-xs">
+            <div className="flex flex-wrap items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 text-xs">
               <span className="text-[11px] text-slate-400 px-2 font-medium flex items-center gap-1">
                 <Layers className="w-3.5 h-3.5" />
-                Warstwa:
+                Kolorowanie:
               </span>
               <button
                 onClick={() => setColorMode('ms')}
-                className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer ${
+                className={`px-3 py-1 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
                   colorMode === 'ms'
-                    ? 'bg-blue-600 text-white shadow-sm'
+                    ? 'bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-md shadow-orange-500/25 ring-1 ring-orange-400'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
               >
-                Koordynatorzy (MS)
+                <span className="w-2 h-2 rounded-full bg-orange-400" />
+                <span>Koordynatorzy (MS)</span>
               </button>
               <button
                 onClick={() => setColorMode('rms')}
-                className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer ${
+                className={`px-3 py-1 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
                   colorMode === 'rms'
-                    ? 'bg-blue-600 text-white shadow-sm'
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/25 ring-1 ring-purple-400'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
               >
-                Dyrektorzy (RMS)
+                <span className="w-2 h-2 rounded-full bg-purple-400" />
+                <span>Dyrektorzy (RMS)</span>
               </button>
               <button
                 onClick={() => setColorMode('gwp')}
                 className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer ${
                   colorMode === 'gwp'
-                    ? 'bg-blue-600 text-white shadow-sm'
+                    ? 'bg-emerald-600 text-white shadow-sm font-bold'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
               >
@@ -429,7 +487,7 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
                 onClick={() => setColorMode('ofwca')}
                 className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer ${
                   colorMode === 'ofwca'
-                    ? 'bg-blue-600 text-white shadow-sm'
+                    ? 'bg-blue-600 text-white shadow-sm font-bold'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
               >
@@ -439,7 +497,7 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
                 onClick={() => setColorMode('dkp')}
                 className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer ${
                   colorMode === 'dkp'
-                    ? 'bg-blue-600 text-white shadow-sm'
+                    ? 'bg-cyan-600 text-white shadow-sm font-bold'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
               >
@@ -460,6 +518,14 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
           onReassignBatch={onReassignBatch}
           onSwitchToSvgMap={() => setEngineMode('odl_svg')}
         />
+      ) : engineMode === 'ms_territory' ? (
+        <MSTerritoryInspector
+          records={records}
+          msList={msList}
+          rmsList={rmsList}
+          onReassignBatch={onReassignBatch}
+          initialSelectedMs={selectedInspectorMs || (msList[0]?.name)}
+        />
       ) : (
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -474,12 +540,46 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
             }}
           />
 
-          <div className="w-full flex items-center justify-between px-2 pt-1 pb-2 text-[11px] text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Podział administracyjny Polski (16 województw) • Kliknij obszar, aby otworzyć panel terytorialny
+          {/* Active Mode Notice Banner */}
+          <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between px-3 py-2 mb-2 rounded-xl bg-slate-950/90 border border-slate-800 text-xs gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                Aktywny Tryb:
+              </span>
+              {colorMode === 'ms' && (
+                <span className="font-bold text-orange-400 flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse" />
+                  Koordynatorzy (MS) • 8 unikalnych barw menadżerów
+                </span>
+              )}
+              {colorMode === 'rms' && (
+                <span className="font-bold text-purple-400 flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse" />
+                  Obszary Dyrektorów Regionalnych (RMS) • 3 makroregiony Polski
+                </span>
+              )}
+              {colorMode === 'gwp' && (
+                <span className="font-bold text-emerald-400 flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  Przypis Składki (Plan GWP 2026)
+                </span>
+              )}
+              {colorMode === 'ofwca' && (
+                <span className="font-bold text-blue-400 flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                  Gęstość Liczby OFWCA w Województwach
+                </span>
+              )}
+              {colorMode === 'dkp' && (
+                <span className="font-bold text-cyan-400 flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-500" />
+                  Udział Placówek Własnych (DKP %)
+                </span>
+              )}
+            </div>
+            <span className="text-[11px] text-slate-400">
+              Kliknij województwo, aby sprawdzić szczegóły w panelu bocznym
             </span>
-            <span className="text-slate-500 font-mono">ODL Vector GIS</span>
           </div>
 
           <svg
@@ -519,46 +619,195 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
                     onClick={() => handleOpenDrawer(geo)}
                   />
 
-                  {/* Centroid Text Badge */}
+                  {/* Centroid Text Badge - Dynamically reflects active mode */}
                   <g className="pointer-events-none">
-                    {/* Background badge pill for maximum legibility */}
                     <rect
-                      x={geo.labelX - 48}
-                      y={geo.labelY - 14}
-                      width="96"
-                      height="34"
-                      rx="6"
-                      fill="rgba(15, 23, 42, 0.72)"
-                      stroke="rgba(255, 255, 255, 0.25)"
-                      strokeWidth="0.8"
+                      x={geo.labelX - 54}
+                      y={geo.labelY - 16}
+                      width="108"
+                      height="36"
+                      rx="8"
+                      fill="rgba(8, 12, 22, 0.92)"
+                      stroke={
+                        isSelected 
+                          ? '#38bdf8' 
+                          : isHovered 
+                          ? '#60a5fa' 
+                          : colorMode === 'ms' 
+                          ? '#ea580c' 
+                          : colorMode === 'rms' 
+                          ? '#a855f7' 
+                          : 'rgba(255, 255, 255, 0.25)'
+                      }
+                      strokeWidth={isSelected ? '2.5' : '1'}
                     />
 
                     <text
                       x={geo.labelX}
-                      y={geo.labelY}
+                      y={geo.labelY - 2}
                       textAnchor="middle"
                       fill="#ffffff"
-                      fontSize="12.5"
+                      fontSize="11.5"
                       fontWeight="800"
                       className="tracking-wide"
                     >
                       {geo.name}
                     </text>
+                    
                     <text
                       x={geo.labelX}
-                      y={geo.labelY + 13}
+                      y={geo.labelY + 12}
                       textAnchor="middle"
-                      fill="#38bdf8"
-                      fontSize="9.5"
-                      fontWeight="700"
+                      fill={
+                        colorMode === 'ms' 
+                          ? '#fdba74' 
+                          : colorMode === 'rms' 
+                          ? '#d8b4fe' 
+                          : colorMode === 'gwp' 
+                          ? '#34d399' 
+                          : '#38bdf8'
+                      }
+                      fontSize="9"
+                      fontWeight="800"
                     >
-                      {stats ? `${stats.ofwcaCount} OFWCA` : '0 OFWCA'}
+                      {colorMode === 'ms'
+                        ? (stats?.dominantMs ? `MS: ${stats.dominantMs.replace(/^MS\s*/, '')}` : 'Brak MS')
+                        : colorMode === 'rms'
+                        ? (stats?.dominantRms ? `RMS: ${stats.dominantRms.replace(/^RMS\s*/, '').replace(/\s*\(.*?\)/, '')}` : 'Brak RMS')
+                        : colorMode === 'gwp'
+                        ? formatPLN(stats?.gwp2026 || 0)
+                        : colorMode === 'dkp'
+                        ? `DKP: ${stats?.ofwcaCount ? Math.round((stats.dkpCount / stats.ofwcaCount) * 100) : 0}%`
+                        : `${stats?.ofwcaCount || 0} OFWCA`
+                      }
                     </text>
                   </g>
                 </g>
               );
             })}
           </svg>
+
+          {/* Dynamic Map Legend Bar */}
+          <div className="mt-3 p-3 bg-slate-950/90 rounded-xl border border-slate-800">
+            {colorMode === 'ms' && (
+              <div className="space-y-2">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-orange-400 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-orange-400" />
+                    <span>Legenda Koordynatorów Sprzedaży (MS):</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-normal">Kliknij MS, aby przejść do inspektora powiatów</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                  {msList.map(m => {
+                    let domCount = 0;
+                    voivodeshipStats.forEach(v => {
+                      if (v.dominantMs === m.name) domCount++;
+                    });
+                    return (
+                      <div
+                        key={m.name}
+                        onClick={() => {
+                          setSelectedInspectorMs(m.name);
+                          setEngineMode('ms_territory');
+                        }}
+                        className="flex items-center gap-2 p-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-orange-500/40 transition cursor-pointer"
+                        title="Kliknij, aby otworzyć inspektor powiatów tego MS"
+                      >
+                        <span
+                          className="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm"
+                          style={{ backgroundColor: m.color }}
+                        />
+                        <div className="truncate">
+                          <span className="font-semibold text-white truncate block">{m.name}</span>
+                          <span className="text-[9px] text-slate-400">{domCount} województw</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {colorMode === 'rms' && (
+              <div className="space-y-2">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-purple-400" />
+                  <span>Legenda Dyrektorów Regionalnych (RMS):</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                  {rmsList.map(r => {
+                    let domCount = 0;
+                    let totalGwp = 0;
+                    let totalOfwca = 0;
+                    voivodeshipStats.forEach(v => {
+                      const vRms = (v.dominantRms || '').toLowerCase();
+                      if (
+                        vRms === r.name.toLowerCase() ||
+                        vRms.includes(r.region.toLowerCase()) ||
+                        vRms.includes(r.name.toLowerCase()) ||
+                        r.name.toLowerCase().includes(vRms)
+                      ) {
+                        domCount++;
+                        totalGwp += v.gwp2026;
+                        totalOfwca += v.ofwcaCount;
+                      }
+                    });
+                    return (
+                      <div
+                        key={r.name}
+                        className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-900 border border-purple-500/25 shadow-sm"
+                      >
+                        <span
+                          className="w-4 h-4 rounded-lg shrink-0 shadow-md"
+                          style={{ backgroundColor: r.color }}
+                        />
+                        <div className="truncate">
+                          <span className="font-bold text-white text-xs block truncate">{r.name}</span>
+                          <div className="text-[10px] text-slate-400 mt-0.5">
+                            {domCount} województw • {totalOfwca} OFWCA • <span className="text-emerald-400 font-semibold">{formatPLN(totalGwp)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {colorMode === 'gwp' && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <span className="font-semibold text-slate-300">Skala Przypisu GWP 2026:</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-slate-400">Niski (&lt;1 mln zł)</span>
+                  <div className="h-3 w-40 rounded-full bg-gradient-to-r from-slate-700 via-indigo-600 via-sky-600 to-emerald-500 shadow-inner" />
+                  <span className="text-[10px] text-emerald-400 font-bold">Wysoki (&gt;10 mln zł)</span>
+                </div>
+              </div>
+            )}
+
+            {colorMode === 'ofwca' && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <span className="font-semibold text-slate-300">Gęstość Liczby OFWCA:</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-slate-400">Poniżej 3 agentów</span>
+                  <div className="h-3 w-40 rounded-full bg-gradient-to-r from-slate-700 via-rose-600 via-orange-500 to-amber-400 shadow-inner" />
+                  <span className="text-[10px] text-amber-300 font-bold">Powyżej 8 agentów</span>
+                </div>
+              </div>
+            )}
+
+            {colorMode === 'dkp' && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <span className="font-semibold text-slate-300">Udział Placówek Własnych (DKP %):</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-cyan-400 font-bold">&lt;30% DKP</span>
+                  <div className="h-3 w-40 rounded-full bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 shadow-inner" />
+                  <span className="text-[10px] text-purple-400 font-bold">&gt;60% DKP</span>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Floating Hover Tooltip */}
           {hoveredVoivodeship && (() => {
@@ -574,7 +823,7 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
                 </div>
                 <div className="space-y-1 text-[11px] text-slate-300 mt-2">
                   <div className="flex justify-between">
-                    <span>Wiodący MS:</span>
+                    <span>Koordynator (MS):</span>
                     <strong className="text-white">{stats.dominantMs || 'Brak'}</strong>
                   </div>
                   <div className="flex justify-between">
@@ -740,10 +989,31 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
                                   </div>
                                 </div>
 
-                                {/* Z poza breakdown */}
-                                <div className="p-2 rounded-lg bg-amber-950/20 border border-amber-500/20">
-                                  <div className="font-bold text-amber-400">
-                                    Z poza: {row.outOfTerritoryOfwca} OFWCA
+                                {/* Z poza breakdown - interactive click */}
+                                <div 
+                                  onClick={() => {
+                                    if (row.outOfTerritoryOfwca > 0 && selectedVoivodeship) {
+                                      setOutOfTerritoryModalData({
+                                        msName: row.msName,
+                                        voivodeshipName: selectedVoivodeship.name,
+                                        records: row.outOfTerritoryRecords
+                                      });
+                                    }
+                                  }}
+                                  className={`p-2 rounded-lg border transition ${
+                                    row.outOfTerritoryOfwca > 0
+                                      ? 'bg-amber-950/30 border-amber-500/40 hover:bg-amber-950/60 hover:border-amber-400 cursor-pointer shadow-sm group'
+                                      : 'bg-slate-900 border-slate-800 opacity-60'
+                                  }`}
+                                  title={row.outOfTerritoryOfwca > 0 ? 'Kliknij, aby zobaczyć z jakich powiatów i agencji pochodzą ci OFWCA' : ''}
+                                >
+                                  <div className="font-bold text-amber-400 flex items-center justify-between">
+                                    <span>Z poza: {row.outOfTerritoryOfwca} OFWCA</span>
+                                    {row.outOfTerritoryOfwca > 0 && (
+                                      <span className="text-[9px] text-amber-300 font-normal underline group-hover:text-white">
+                                        Szczegóły &rarr;
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="text-slate-400 mt-0.5">
                                     <span className="text-violet-300 font-semibold">{row.outOfTerritoryDkp} DKP</span> / <span className="text-sky-300 font-semibold">{row.outOfTerritoryDpd} DPD</span>
@@ -753,7 +1023,18 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
 
                               <div className="flex justify-between items-center text-[10px] text-slate-400 pt-1">
                                 <span>GWP w tym woj.: <strong className="text-white">{formatPLN(row.gwp2026InVoivodeship)}</strong></span>
-                                <span>Dyrektor: {row.rmsName}</span>
+                                <button
+                                  onClick={() => {
+                                    setSelectedInspectorMs(row.msName);
+                                    setEngineMode('ms_territory');
+                                    setSelectedVoivodeship(null);
+                                  }}
+                                  className="px-2 py-0.5 rounded bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 hover:text-blue-300 font-semibold border border-blue-500/20 flex items-center gap-1 transition cursor-pointer"
+                                  title={`Zobacz pełny zasięg terytorialny ${row.msName} we wszystkich powiatach`}
+                                >
+                                  <Compass className="w-3 h-3" />
+                                  <span>Zasięg w powiatach</span>
+                                </button>
                               </div>
                             </div>
                           ))
@@ -793,7 +1074,7 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
 
                             <div className="flex items-center justify-between text-[10px] text-slate-400">
                               <span>Stolica: <strong className="text-slate-300">{p.capital}</strong> ({p.type})</span>
-                              <span>Wiodący: <strong className="text-blue-400">{p.dominantMs}</strong></span>
+                              <span>Koordynator: <strong className="text-blue-400">{p.dominantMs}</strong></span>
                             </div>
 
                             <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-[10px]">
@@ -864,6 +1145,19 @@ export const TerritoryMap: React.FC<TerritoryMapProps> = ({
           )}
         </div>
       </div>
+      )}
+
+      {/* Out of Territory Details Modal */}
+      {outOfTerritoryModalData && (
+        <OutOfTerritoryModal
+          isOpen={true}
+          onClose={() => setOutOfTerritoryModalData(null)}
+          msName={outOfTerritoryModalData.msName}
+          voivodeshipName={outOfTerritoryModalData.voivodeshipName}
+          records={outOfTerritoryModalData.records}
+          msList={msList}
+          onReassign={onReassignBatch}
+        />
       )}
     </div>
   );

@@ -441,6 +441,8 @@ export function calculateVoivodeshipTerritoryBreakdown(
         outOfTerritoryOfwca: outRecs.length,
         outOfTerritoryDkp: outDkp,
         outOfTerritoryDpd: outDpd,
+        inTerritoryRecords: inRecs,
+        outOfTerritoryRecords: outRecs,
         gwp2026InVoivodeship: totalGwp,
       };
     }).sort((a, b) => b.totalOfwcaInVoivodeship - a.totalOfwcaInVoivodeship);

@@ -23,6 +23,7 @@ import {
   wipeLocalDatabase 
 } from '../db/indexedDB';
 import { validateGoogleApiKey } from '../utils/aiAdvisor';
+import { generatePcInstallationZip } from '../utils/packageGenerator';
 import { OFWCARecord, CoordinatorMS, CoordinatorRMS, ModelingHistoryStep, AppSettings } from '../types';
 
 interface InstallationModalProps {
@@ -68,6 +69,7 @@ export const InstallationModal: React.FC<InstallationModalProps> = ({
 
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [isGeneratingZip, setIsGeneratingZip] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -122,6 +124,25 @@ export const InstallationModal: React.FC<InstallationModalProps> = ({
   const handleExportPackage = async () => {
     await exportLocalDataPackage(records, msList, rmsList, history);
     await loadMetrics();
+  };
+
+  const handleDownloadPcInstallerZip = async () => {
+    try {
+      setIsGeneratingZip(true);
+      const zipBlob = await generatePcInstallationZip(records, msList, rmsList, history);
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SalesTerritoryStudio_PC_Instalator_v1.0.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(`Błąd podczas generowania paczki ZIP: ${err.message}`);
+    } finally {
+      setIsGeneratingZip(false);
+    }
   };
 
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -249,13 +270,57 @@ export const InstallationModal: React.FC<InstallationModalProps> = ({
                 </p>
               </div>
 
+              {/* Download Full PC Installer Package (ZIP) */}
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-950/60 via-slate-900 to-indigo-950/60 border border-blue-500/40 space-y-4 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold border border-blue-500/30">
+                        ZALECANE DLA PC
+                      </span>
+                      <h4 className="font-bold text-white text-sm">Paczka Instalacyjna na PC (Plik .ZIP)</h4>
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed max-w-md">
+                      Pobierz gotowe archiwum ZIP zawierające skrypt 1-kliknięciowego uruchomienia w Windows, generator skrótu na Pulpicie, pełną bazę danych oraz instrukcję wdrożenia offline.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleDownloadPcInstallerZip}
+                    disabled={isGeneratingZip}
+                    className="px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-blue-500/25 transition cursor-pointer flex items-center gap-2 shrink-0 justify-center"
+                  >
+                    {isGeneratingZip ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Generowanie paczki...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4" />
+                        <span>Pobierz paczkę ZIP na PC</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] text-slate-400 space-y-1.5">
+                  <div className="font-semibold text-slate-200">Zawartość paczki instalacyjnej:</div>
+                  <ul className="list-disc list-inside space-y-0.5 text-slate-300">
+                    <li><strong className="text-white">URUCHOM_STS_NA_PC.bat</strong> – natychmiastowe uruchomienie STS w oknie desktop (bez pasków adresu)</li>
+                    <li><strong className="text-white">UTWORZ_SKROT_NA_PULPICIE.vbs</strong> – automatyczne dodanie ikony programu na Pulpit Windows</li>
+                    <li><strong className="text-white">dane_poczatkowe_baza_sts.json</strong> – pełna kopia zapasowa Twojej bazy danych</li>
+                    <li><strong className="text-white">INSTRUKCJA_INSTALACJI_PC.txt</strong> – prosty przewodnik krok po kroku</li>
+                  </ul>
+                </div>
+              </div>
+
               {/* Install PWA Button Card */}
               <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-bold text-white text-sm">Instalacja programu na komputerze</h4>
+                    <h4 className="font-bold text-white text-sm">Natywna instalacja w przeglądarce (PWA)</h4>
                     <p className="text-[11px] text-slate-400 mt-0.5">
-                      Tworzy dedykowany skrót na pulpicie i uruchamia STS w osobnym oknie bez pasków przeglądarki.
+                      Instaluje STS bezpośrednio z Chrome lub Edge jako aplikację systemową.
                     </p>
                   </div>
                   {isInstalled ? (
@@ -266,9 +331,9 @@ export const InstallationModal: React.FC<InstallationModalProps> = ({
                   ) : (
                     <button
                       onClick={handleInstallPWA}
-                      className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/20 transition cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition cursor-pointer"
                     >
-                      Zainstaluj na PC
+                      Zainstaluj w systemie
                     </button>
                   )}
                 </div>

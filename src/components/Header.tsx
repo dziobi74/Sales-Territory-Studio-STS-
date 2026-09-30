@@ -15,7 +15,8 @@ import {
   Laptop,
   BrainCircuit,
   Key,
-  Database
+  Database,
+  History
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -31,6 +32,7 @@ interface HeaderProps {
   auditIssuesCount: number;
   onOpenInstallation: () => void;
   hasGoogleKey: boolean;
+  onOpenVersions: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -45,7 +47,8 @@ export const Header: React.FC<HeaderProps> = ({
   totalRecordsCount,
   auditIssuesCount,
   onOpenInstallation,
-  hasGoogleKey
+  hasGoogleKey,
+  onOpenVersions
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -106,6 +109,16 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>Cofnij</span>
               </button>
             )}
+
+            {/* Version Manager Button */}
+            <button
+              onClick={onOpenVersions}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-950/70 hover:bg-purple-900/70 text-purple-200 border border-purple-700/60 transition cursor-pointer font-medium"
+              title="Menedżer Wersji i Migawki (Version Studio) - punkty kontrolne i powrót do poprzednich wersji"
+            >
+              <History className="w-3.5 h-3.5 text-purple-400" />
+              <span>Wersje & Historia</span>
+            </button>
 
             {/* Upload Excel */}
             <button
@@ -170,7 +183,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             {/* PWA Install Button */}
-            <PWAInstallButton />
+            <PWAInstallButton onOpenInstallation={onOpenInstallation} />
           </div>
         </div>
 

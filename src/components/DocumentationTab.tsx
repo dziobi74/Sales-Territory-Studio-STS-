@@ -16,7 +16,13 @@ import {
   ArrowRight,
   Database,
   Compass,
-  Cpu
+  Cpu,
+  Users,
+  RotateCcw,
+  History,
+  GitCompare,
+  Clock,
+  Save
 } from 'lucide-react';
 
 export const DocumentationTab: React.FC = () => {
@@ -25,11 +31,13 @@ export const DocumentationTab: React.FC = () => {
   const sections = [
     { id: 'intro', title: '1. O aplikacji STS v1.0', icon: BookOpen },
     { id: 'excel_structure', title: '2. Struktura Danych Excel', icon: FileSpreadsheet },
-    { id: 'business_rules', title: '3. Reguły Biznesowe i DKP/DPD', icon: ShieldCheck },
-    { id: 'balancing_algo', title: '4. Algorytm Wyrównywania Obciążenia', icon: Scale },
-    { id: 'territory_rules', title: '5. Obszary: Teren vs Poza Terenem', icon: Compass },
-    { id: 'map_guide', title: '6. Mapa i Podział Administracyjny', icon: Map },
-    { id: 'offline_pwa', title: '7. Instalacja Lokalna PC (PWA & Offline)', icon: Cpu },
+    { id: 'business_roles', title: '3. Role: Koordynator (MS) vs Dyrektor (RMS)', icon: Users },
+    { id: 'business_rules', title: '4. Reguły Biznesowe i DKP/DPD', icon: ShieldCheck },
+    { id: 'balancing_algo', title: '5. Algorytm Wyrównywania Obciążenia', icon: Scale },
+    { id: 'territory_rules', title: '6. Obszary: Teren vs Poza Terenem', icon: Compass },
+    { id: 'map_guide', title: '7. Mapa i Podział Administracyjny', icon: Map },
+    { id: 'versioning_guide', title: '8. Wersjonowanie i Punkty Przywracania', icon: RotateCcw },
+    { id: 'offline_pwa', title: '9. Instalacja Lokalna PC (PWA & Offline)', icon: Cpu },
   ];
 
   return (
@@ -299,11 +307,83 @@ export const DocumentationTab: React.FC = () => {
             </div>
           )}
 
-          {/* SECTION 3: Business rules */}
+          {/* SECTION 3: Business Roles: MS vs RMS */}
+          {activeSection === 'business_roles' && (
+            <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-xl space-y-6">
+              <div className="border-b border-slate-800 pb-4">
+                <h3 className="text-lg font-bold text-white">3. Role Biznesowe w Strukturze: Menadżerowie (MS) vs Dyrektorzy (RMS)</h3>
+                <p className="text-xs text-slate-400 mt-1">Dwupoziomowa hierarchia terytorialna, zakres odpowiedzialności i odzwierciedlenie na mapie</p>
+              </div>
+
+              <div className="text-xs text-slate-300 space-y-5 leading-relaxed">
+                <p>
+                  System STS v1.0 został zaprojektowany w oparciu o rzeczywistą strukturę sieci agencyjnej w towarzystwach ubezpieczeniowych w Polsce. Wyróżnia dwa kluczowe poziomy zarządcze, których cele i zakresy analizy różnią się diametralnie:
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Karta MS */}
+                  <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-950/30 via-slate-950 to-slate-950 border border-orange-500/30 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-orange-500 shadow-sm" />
+                      <h4 className="font-bold text-white text-sm">Koordynator Sprzedaży / Menadżer (MS)</h4>
+                    </div>
+                    <div className="text-[11px] text-orange-200/80 font-semibold">
+                      Poziom Operacyjny • Bezpośrednia opieka nad siecią OFWCA i agencjami
+                    </div>
+                    <ul className="list-disc list-inside space-y-1.5 text-slate-300 text-[11px] pl-1">
+                      <li><strong>Bezpośredni kontakt:</strong> realizuje wizytacje w placówkach agencji, spotkania rekrutacyjne i coaching sprzedażowy dla OFWCA.</li>
+                      <li><strong>Odpowiedzialność za portfel:</strong> odpowiada za realizację planu GWP (składka detaliczna + EDU programy specjalne) w przypisanych powiatach.</li>
+                      <li><strong>Logistyka i zasięg:</strong> operuje zazwyczaj w promieniu 1–2 województw. Każdy kilometr dojazdu generuje koszt czasu pracy i delegacji.</li>
+                      <li><strong>Na mapie w STS:</strong> oznaczony wyrazistą, unikalną barwą z palety 8 kolorów. Pozwala zidentyfikować „ogony terytorialne” (rozproszenie agentów daleko od bazy domowej).</li>
+                    </ul>
+                  </div>
+
+                  {/* Karta RMS */}
+                  <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-950/30 via-slate-950 to-slate-950 border border-purple-500/30 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-purple-500 shadow-sm" />
+                      <h4 className="font-bold text-white text-sm">Dyrektor Regionalny / RMS</h4>
+                    </div>
+                    <div className="text-[11px] text-purple-200/80 font-semibold">
+                      Poziom Strategiczny • Nadzór nad makroregionami i podległymi Menadżerami (MS)
+                    </div>
+                    <ul className="list-disc list-inside space-y-1.5 text-slate-300 text-[11px] pl-1">
+                      <li><strong>Zarządzanie kadrą menadżerską:</strong> nadzoruje pracę 2–4 Menadżerów Sprzedaży (MS) w ramach swojego makroregionu.</li>
+                      <li><strong>Makroregiony w Polsce:</strong> dzieli kraj na duże obszary strategiczne: <em>RMS Północ</em> (Pomorze, Kujawy, Zachód), <em>RMS Centrum</em> (Mazowsze, Łódź, Lubelszczyzna) oraz <em>RMS Południe</em> (Śląsk, Małopolska, Dolny Śląsk).</li>
+                      <li><strong>Równoważenie potencjału:</strong> monitoruje czy przypis składki i liczba agentów w makroregionie są adekwatne do celów zarządu TU.</li>
+                      <li><strong>Na mapie w STS:</strong> po przełączeniu na „Dyrektorzy (RMS)” mapa konsoliduje 16 województw w 3 jednolite makroregiony: Północ (Szafirowy Błękit), Centrum (Królewski Fiolet), Południe (Głęboka Zieleń).</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                  <h4 className="font-bold text-white text-xs flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-cyan-400" />
+                    <span>Dlaczego przełączanie warstw (MS vs RMS) jest kluczowe w modelowaniu?</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    W pracy analityka terytorialnego często zachodzi potrzeba spojrzenia na organizację w dwóch różnych skalach:
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px] pt-1">
+                    <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                      <strong className="text-orange-400 block mb-1">Widok Koordynatorów (MS):</strong>
+                      Pozwala zdiagnozować mikronierówności – np. czy Koordynator A ma 28 OFWCA i 18 mln zł GWP, podczas gdy sąsiadujący Koordynator B ma tylko 9 OFWCA i 3 mln zł GWP. W tym widoku etykiety na mapie pokazują imię i nazwisko wiodącego MS w danym województwie.
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                      <strong className="text-purple-400 block mb-1">Widok Dyrektorów (RMS):</strong>
+                      Pozwala ocenić równowagę makroekonomiczną regionów – czy granice dyrekcji regionalnych nie przecinają nienaturalnie spójnych rynków lokalnych i czy któryś z dyrektorów nie ma dysproporcji w udziale placówek wyłącznych (DKP).
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION 4: Business rules */}
           {activeSection === 'business_rules' && (
             <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-xl space-y-6">
               <div className="border-b border-slate-800 pb-4">
-                <h3 className="text-lg font-bold text-white">3. Reguły Biznesowe, Klasyfikacja DKP/DPD oraz Audyt</h3>
+                <h3 className="text-lg font-bold text-white">4. Reguły Biznesowe, Klasyfikacja DKP/DPD oraz Audyt</h3>
                 <p className="text-xs text-slate-400 mt-1">Zasady logiki biznesowej zaimplementowane w silniku STS</p>
               </div>
 
@@ -357,11 +437,11 @@ export const DocumentationTab: React.FC = () => {
             </div>
           )}
 
-          {/* SECTION 4: Balancing Algo */}
+          {/* SECTION 5: Balancing Algo */}
           {activeSection === 'balancing_algo' && (
             <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-xl space-y-6">
               <div className="border-b border-slate-800 pb-4">
-                <h3 className="text-lg font-bold text-white">4. Algorytm Wyrównywania Sił Sprzedażowych i Obciążenia</h3>
+                <h3 className="text-lg font-bold text-white">5. Algorytm Wyrównywania Sił Sprzedażowych i Obciążenia</h3>
                 <p className="text-xs text-slate-400 mt-1">Matematyka bilansowania portfeli koordynatorów (MS / RMS)</p>
               </div>
 
@@ -414,11 +494,11 @@ export const DocumentationTab: React.FC = () => {
             </div>
           )}
 
-          {/* SECTION 5: Territory Home vs Out */}
+          {/* SECTION 6: Territory Home vs Out */}
           {activeSection === 'territory_rules' && (
             <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-xl space-y-6">
               <div className="border-b border-slate-800 pb-4">
-                <h3 className="text-lg font-bold text-white">5. Analiza Terytorialna: „Z terenu” vs „Z poza terenu” z podziałem DKP/DPD</h3>
+                <h3 className="text-lg font-bold text-white">6. Analiza Terytorialna: „Z terenu” vs „Z poza terenu” z podziałem DKP/DPD</h3>
                 <p className="text-xs text-slate-400 mt-1">Zarządzanie terytorialnością koordynatorów i spójnością rejonów</p>
               </div>
 
@@ -466,12 +546,12 @@ export const DocumentationTab: React.FC = () => {
             </div>
           )}
 
-          {/* SECTION 6: Map & Admin Division */}
+          {/* SECTION 7: Map & Admin Division */}
           {activeSection === 'map_guide' && (
             <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-xl space-y-6">
               <div className="border-b border-slate-800 pb-4">
-                <h3 className="text-lg font-bold text-white">6. Interaktywna Mapa Polski z Podziałem Administracyjnym</h3>
-                <p className="text-xs text-slate-400 mt-1">Obsługa mapy wektorowej, filtrowanie i hurtowe przenoszenie</p>
+                <h3 className="text-lg font-bold text-white">7. Interaktywna Mapa Polski z Podziałem Administracyjnym</h3>
+                <p className="text-xs text-slate-400 mt-1">Obsługa mapy wektorowej, warstwy MS vs RMS i interaktywne etykiety</p>
               </div>
 
               <div className="text-xs text-slate-300 space-y-4 leading-relaxed">
@@ -486,9 +566,9 @@ export const DocumentationTab: React.FC = () => {
                       Autentyczny, wierny obrys 16 województw Polski i 380 powiatów TERYT. Nie wymaga połączenia z internetem ani żadnych kluczy API.
                     </p>
                     <ul className="list-disc list-inside space-y-1 text-slate-400 text-[11px]">
-                      <li><strong>Wg Koordynatora (MS)</strong>: barwa dominującego MS.</li>
-                      <li><strong>Wg Dyrektora (RMS)</strong>: podział na makroregiony RMS.</li>
-                      <li><strong>Wg GWP 2026</strong>: mapa ciepła (choropleth) składki.</li>
+                      <li><strong>Wg Koordynatora (MS)</strong>: 8 kontrastowych barw menadżerów z dynamiczną etykietą <code>MS: [Imię Nazwisko]</code>.</li>
+                      <li><strong>Wg Dyrektora (RMS)</strong>: 3 duże makroregiony Polski (Północ, Centrum, Południe) z etykietą <code>RMS: [Region]</code>.</li>
+                      <li><strong>Wg GWP 2026</strong>: mapa ciepła (choropleth) składki w milionach złotych.</li>
                       <li><strong>Liczba OFWCA</strong>: zagęszczenie sieci sprzedaży.</li>
                       <li><strong>Udział DKP %</strong>: nasycenie kanałem DKP vs DPD.</li>
                     </ul>
@@ -510,42 +590,129 @@ export const DocumentationTab: React.FC = () => {
             </div>
           )}
 
-          {/* SECTION 7: Offline & PWA */}
+          {/* SECTION 8: Versioning & Snapshots */}
+          {activeSection === 'versioning_guide' && (
+            <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-xl space-y-6">
+              <div className="border-b border-slate-800 pb-4">
+                <h3 className="text-lg font-bold text-white">8. Wersjonowanie Struktur, Punkty Przywracania i Bezpieczeństwo Zmian</h3>
+                <p className="text-xs text-slate-400 mt-1">Pełny audyt zmian, tworzenie migawek (Snapshots), porównywanie wersji (Diff) i 1-kliknięciowy powrót</p>
+              </div>
+
+              <div className="text-xs text-slate-300 space-y-5 leading-relaxed">
+                <p>
+                  Modelowanie terytorialne w firmie ubezpieczeniowej to proces iteracyjny i wysoce odpowiedzialny. Zmiana przypisania agenta lub całego powiatu wpływa na prowizje, plany sprzedażowe i relacje międzyludzkie. Dlatego STS v1.0 wyposażony jest w <strong>silnik wersjonowania i migawek (Version Studio)</strong> oparty na lokalnej bazie IndexedDB.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
+                    <div className="text-purple-400 font-bold mb-1 flex items-center gap-1.5">
+                      <Save className="w-4 h-4" /> Punkty Przywracania
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Przed rozpoczęciem testowania odważnych zmian (np. przeniesienie 5 powiatów z zachodu na wschód) utwórz nazwaną migawkę: np. <em>„Stan przed reorganizacją Wielkopolski”</em>.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
+                    <div className="text-blue-400 font-bold mb-1 flex items-center gap-1.5">
+                      <GitCompare className="w-4 h-4" /> Narzędzie Porównania (Diff)
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      W dowolnej chwili możesz kliknąć <strong>„Porównaj”</strong>, aby zobaczyć tabelaryczne zestawienie agentów, którzy zmienili koordynatora między bieżącym stanem a wybraną wersją.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
+                    <div className="text-emerald-400 font-bold mb-1 flex items-center gap-1.5">
+                      <RotateCcw className="w-4 h-4" /> Natychmiastowy Rollback
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Jednym kliknięciem przycisku <strong>„Przywróć tę wersję”</strong> powracasz do wybranego stanu. Wszystkie rekordy, przypisania MS/RMS oraz statystyki natychmiast wracają do wartości z tej migawki.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+                  <h4 className="font-bold text-white text-xs flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-amber-400" />
+                    <span>Jak korzystać z Menedżera Wersji w codziennej pracy?</span>
+                  </h4>
+                  <ol className="list-decimal list-inside space-y-2 text-slate-300 text-[11px] pl-1">
+                    <li>
+                      <strong>Automatyczna wersja bazowa (Wersja 0):</strong> Po wgraniu nowego pliku Excel lub uruchomieniu danych demo, system automatycznie zapisuje stan zerowy z adnotacją o nazwie pliku.
+                    </li>
+                    <li>
+                      <strong>Zapisywanie wersji roboczych:</strong> W prawym górnym pasku kliknij przycisk <strong>„Wersje & Historia”</strong>. Wpisz nazwę (np. <em>„Wersja 1: Wyrównanie GWP Mazowsza”</em>) oraz uzasadnienie biznesowe i kliknij <em>„Zapisz Punkt Przywracania”</em>.
+                    </li>
+                    <li>
+                      <strong>Cofanie pojedynczego kroku (Undo):</strong> Jeśli chcesz cofnąć tylko ostatnie przeciągnięcie agenta lub powiatu, skorzystaj z przycisku <strong>„Cofnij”</strong> w pasku głównym.
+                    </li>
+                    <li>
+                      <strong>Reset do stanu pierwotnego:</strong> W oknie wersji dostępny jest przycisk <em>„Resetuj do stanu bazowego z pliku”</em>, który usuwa wszelkie modyfikacje i przywraca stan prosto z arkusza kalkulacyjnego.
+                    </li>
+                    <li>
+                      <strong>Eksport wersji do JSON:</strong> Każdą wersję możesz pobrać w postaci pliku <code>.sts-snap.json</code>, aby przesłać ją innemu analitykowi lub zachować jako archiwalną kopię zapasową.
+                    </li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION 9: Offline & PWA */}
           {activeSection === 'offline_pwa' && (
             <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-xl space-y-6">
               <div className="border-b border-slate-800 pb-4">
-                <h3 className="text-lg font-bold text-white">7. Instalacja Lokalna na Komputerze PC (PWA & Offline)</h3>
-                <p className="text-xs text-slate-400 mt-1">Jak uruchomić STS v1.0 jako niezależną aplikację desktopową</p>
+                <h3 className="text-lg font-bold text-white">9. Instalacja Lokalna na Komputerze PC (PWA, Paczka ZIP & Offline)</h3>
+                <p className="text-xs text-slate-400 mt-1">Dwa niezawodne sposoby uruchomienia STS v1.0 jako programu desktopowego</p>
               </div>
 
-              <div className="text-xs text-slate-300 space-y-4 leading-relaxed">
+              <div className="text-xs text-slate-300 space-y-5 leading-relaxed">
                 <p>
-                  <strong>Sales Territory Studio</strong> zostało zaprojektowane w standardzie <em>Progressive Web App (PWA)</em>. Oznacza to, że możesz zainstalować aplikację bezpośrednio na swoim komputerze z systemem Windows, macOS lub Linux:
+                  <strong>Sales Territory Studio</strong> można uruchomić na komputerze PC na dwa sposoby: pobierając gotowy <strong>Pakiet Instalacyjny ZIP</strong> z launcherem Windows lub instalując aplikację w standardzie <strong>Progressive Web App (PWA)</strong>:
                 </p>
 
-                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+                {/* Sposób 1: Paczka ZIP */}
+                <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-950/40 via-slate-950 to-indigo-950/40 border border-blue-500/30 space-y-3">
+                  <div className="flex items-center gap-2 font-bold text-blue-300 text-xs">
+                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white text-[11px]">A</span>
+                    Sposób 1: Gotowa Paczka ZIP na PC (Zalecane dla systemów Windows)
+                  </div>
+                  <p className="text-[11px] text-slate-300 pl-7 leading-relaxed">
+                    W oknie <strong>„Paczka & Baza PC”</strong> kliknij <strong>„Pobierz paczkę ZIP na PC”</strong>. Pobrane archiwum <code>SalesTerritoryStudio_PC_Instalator_v1.0.zip</code> zawiera:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-slate-300 text-[11px] pl-7">
+                    <li><strong className="text-white">URUCHOM_STS_NA_PC.bat</strong> – natychmiastowe uruchomienie STS w dedykowanym oknie roboczym bez pasków przeglądarki (uruchamia się za pomocą wbudowanego silnika Edge lub Chrome).</li>
+                    <li><strong className="text-white">UTWORZ_SKROT_NA_PULPICIE.vbs</strong> – 1-kliknięciowe utworzenie skrótu programu na Twoim Pulpicie Windows.</li>
+                    <li><strong className="text-white">dane_poczatkowe_baza_sts.json</strong> – gotowa kopia zapasowa bazy danych agentów i koordynatorów.</li>
+                    <li><strong className="text-white">INSTRUKCJA_INSTALACJI_PC.txt</strong> – zwięzły przewodnik instalacji.</li>
+                  </ul>
+                </div>
+
+                {/* Sposób 2: PWA */}
+                <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
                   <div className="flex items-center gap-2 font-bold text-white text-xs">
-                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white text-[11px]">1</span>
-                    Krok 1: Przycisk w nagłówku
+                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-700 text-white text-[11px]">B</span>
+                    Sposób 2: Bezpośrednia instalacja w przeglądarce (PWA)
                   </div>
-                  <p className="text-[11px] text-slate-400 pl-7">
-                    W prawym górnym rogu ekranu kliknij przycisk <strong>„Zainstaluj na PC”</strong>. Jeśli korzystasz z przeglądarki Chrome lub Edge, pojawi się okno dialogowe z pytaniem o instalację STS v1.0.
-                  </p>
+                  <div className="space-y-2 text-[11px] text-slate-400 pl-7">
+                    <p>
+                      W prawym górnym rogu ekranu kliknij przycisk <strong>„Zainstaluj na PC”</strong> (bądź ikonkę instalatora w pasku adresu Chrome/Edge).
+                    </p>
+                    <p>
+                      System operacyjny utworzy ikonę programu STS w Menu Start i na pasku zadań. Program otworzy się w osobnym oknie jako niezależna aplikacja biurowa.
+                    </p>
+                  </div>
+                </div>
 
-                  <div className="flex items-center gap-2 font-bold text-white text-xs pt-2">
-                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white text-[11px]">2</span>
-                    Krok 2: Skrót na pulpicie i w Menu Start
+                {/* Sekcja Offline & Bezpieczeństwo */}
+                <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-500/30 text-[11px] text-slate-300 space-y-2">
+                  <div className="font-bold text-emerald-300 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>Praca w 100% Offline i Pełna Poufność Danych</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 pl-7">
-                    Po kliknięciu „Zainstaluj”, system operacyjny utworzy ikonę programu STS na Twoim pulpicie oraz w menu Start/Aplikacje. Program otworzy się w osobnym, dedykowanym oknie pozbawionym pasków przeglądarki.
-                  </p>
-
-                  <div className="flex items-center gap-2 font-bold text-white text-xs pt-2">
-                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white text-[11px]">3</span>
-                    Krok 3: Praca bez połączenia z Internetem (100% Offline)
-                  </div>
-                  <p className="text-[11px] text-slate-400 pl-7">
-                    Aplikacja korzysta z lokalnego Service Workera i pamięci LocalStorage komputera. Nawet po odłączeniu kabla sieciowego lub w podróży służbowej bez zasięgu, wszystkie funkcje modelowania, wczytywania i generowania plików Excel działają nieprzerwanie.
+                  <p className="leading-relaxed">
+                    Aplikacja korzysta z wbudowanego Service Workera oraz lokalnej bazy <strong>IndexedDB</strong> Twojego komputera. Po pierwszym załadowaniu program działa całkowicie bez dostępu do Internetu. Żadne dane sprzedażowe, numery agencji czy dane osobowe agentów OFWCA nie są przesyłane do zewnętrznych serwerów.
                   </p>
                 </div>
               </div>
